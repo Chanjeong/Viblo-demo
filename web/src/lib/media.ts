@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { mkdir, writeFile, unlink } from 'node:fs/promises';
+import { mkdir, writeFile, unlink, rename } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { MAX_UPLOAD_BYTES } from '@/lib/project';
@@ -26,6 +26,46 @@ const BUNDLED_FFPROBE = path.join(
 );
 const FFPROBE = () =>
   process.env.FFPROBE_PATH || (existsSync(BUNDLED_FFPROBE) ? BUNDLED_FFPROBE : 'ffprobe');
+
+const BUNDLED_FFMPEG = path.join(
+  process.cwd(), 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe',
+);
+const FFMPEG = () =>
+  process.env.FFMPEG_PATH || (existsSync(BUNDLED_FFMPEG) ? BUNDLED_FFMPEG : 'ffmpeg');
+
+/** v:0 스트림의 코덱명 반환(없으면 null). */
+export async function probeVideoCodec(filePath: string): Promise<string | null> {
+  const { stdout } = await execa(
+    FFPROBE(),
+    ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name', '-of', 'json', filePath],
+    { timeout: 30_000 },
+  );
+  return JSON.parse(stdout)?.streams?.[0]?.codec_name ?? null;
+}
+
+/**
+ * 브라우저(<video>)가 못 여는 코덱(HEVC/H.265 등)이면 H.264로 재인코딩(제자리 교체).
+ * 미리보기는 @remotion/player의 브라우저 디코딩에 의존하므로 h264가 아니면 화면이 까맣게 나온다.
+ * 이미 h264면 아무 것도 하지 않는다(재인코딩 비용 회피).
+ */
+export async function ensureBrowserPlayableH264(filePath: string): Promise<void> {
+  const codec = await probeVideoCodec(filePath);
+  if (codec === 'h264') return;
+
+  const tmp = `${filePath}.h264.mp4`;
+  await execa(
+    FFMPEG(),
+    [
+      '-y', '-i', filePath,
+      '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
+      '-c:a', 'aac', '-movflags', '+faststart',
+      tmp,
+    ],
+    { timeout: 600_000 },
+  );
+  await unlink(filePath);
+  await rename(tmp, filePath);
+}
 
 export async function probeDurationSec(filePath: string): Promise<number> {
   const { stdout } = await execa(
@@ -60,6 +100,7 @@ export async function saveUploadedFile(file: File): Promise<{ mediaId: string; d
   let durationSec: number;
   try {
     durationSec = await probeDurationSec(dest); // 손상 파일이면 여기서 throw
+    await ensureBrowserPlayableH264(dest); // 업로드본이 HEVC여도 미리보기가 되도록 보정
   } catch (e) {
     await unlink(dest).catch(() => {});
     console.error(e);

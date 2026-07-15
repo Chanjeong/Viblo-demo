@@ -1,7 +1,7 @@
 import { execa } from 'execa';
 import { readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import { MEDIA_DIR, ensureDirs, mediaPath, probeDurationSec } from '@/lib/media';
+import { MEDIA_DIR, ensureDirs, ensureBrowserPlayableH264, mediaPath, probeDurationSec } from '@/lib/media';
 
 export type IngestErrorType =
   | 'private' | 'unavailable' | 'geo_blocked' | 'rate_limited'
@@ -89,7 +89,10 @@ async function attemptDownload(url: string, mediaId: string): Promise<void> {
   }
   try {
     await execa(YTDLP(), [
-      '-f', 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b',
+      // 브라우저 미리보기(<video>)는 H.264만 확실히 디코딩하므로 avc/h264를 최우선 선택.
+      // (틱톡은 종종 h264와 h265를 함께 제공하는데 기본 정렬이 h265를 고르기도 함)
+      // avc/h264가 없으면 아무 거나 받고, 그건 뒤에서 ensureBrowserPlayableH264가 변환한다.
+      '-f', "bv*[vcodec~='^(avc|h264)']+ba/b[vcodec~='^(avc|h264)']/bv*+ba/b",
       '--merge-output-format', 'mp4',
       '--no-playlist', '--no-progress',
       ...extraArgs,
@@ -120,6 +123,8 @@ export async function downloadFromUrl(url: string): Promise<{ mediaId: string; d
     await attemptDownload(url, mediaId); // 재시도 1회, 또 실패하면 그대로 throw
   }
 
+  // 선택자가 H.264를 못 구해 HEVC를 받았다면 여기서 브라우저용 H.264로 변환한다.
+  await ensureBrowserPlayableH264(mediaPath(mediaId));
   const durationSec = await probeDurationSec(mediaPath(mediaId));
   return { mediaId, durationSec };
 }

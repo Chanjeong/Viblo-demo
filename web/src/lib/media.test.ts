@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
 import { existsSync, readdirSync, mkdirSync } from 'node:fs';
-import { probeDurationSec, isUuid, saveUploadedFile, MediaError, missingMediaProblems, ensureDirs } from '@/lib/media';
+import { probeDurationSec, isUuid, saveUploadedFile, MediaError, missingMediaProblems, ensureDirs, probeVideoCodec, ensureBrowserPlayableH264 } from '@/lib/media';
+import { copyFileSync, rmSync } from 'node:fs';
 
 describe('isUuid', () => {
   it('accepts uuid, rejects traversal', () => {
@@ -20,6 +21,23 @@ describe('probeDurationSec', () => {
   });
   it('throws on nonexistent file', async () => {
     await expect(probeDurationSec('C:/nope/missing.mp4')).rejects.toThrow();
+  });
+});
+
+describe('browser-playable codec', () => {
+  const fixture = path.join(process.cwd(), 'public', 'fixtures', 'clip-a.mp4'); // libx264 h264
+  it.skipIf(!existsSync(fixture))('probeVideoCodec reports h264 for the fixture', async () => {
+    expect(await probeVideoCodec(fixture)).toBe('h264');
+  });
+  it.skipIf(!existsSync(fixture))('ensureBrowserPlayableH264 is a no-op on an already-h264 file', async () => {
+    await ensureDirs();
+    const copy = path.join(process.cwd(), 'storage', 'media', `${crypto.randomUUID()}.mp4`);
+    copyFileSync(fixture, copy);
+    const before = existsSync(copy);
+    await ensureBrowserPlayableH264(copy); // 재인코딩하면 안 됨
+    expect(before).toBe(true);
+    expect(await probeVideoCodec(copy)).toBe('h264');
+    rmSync(copy, { force: true });
   });
 });
 
