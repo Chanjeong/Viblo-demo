@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ProjectSchema, buildRenderProject, type ResolvedSrc } from '@/lib/project';
 import { createJob, updateJob } from '@/lib/jobs';
-import { ensureDirs, rendersPath } from '@/lib/media';
+import { ensureDirs, missingMediaProblems, rendersPath } from '@/lib/media';
 import { getServeUrl, renderProjectToFile } from '@/lib/renderer';
 
 export const runtime = 'nodejs';
@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
     ({ kind: 'url', url: `${origin()}/api/media/${mediaId}` });
   const built = buildRenderProject(parsed.data, resolveSrc);
   if (!built.ok) return Response.json({ problems: built.problems }, { status: 400 });
+
+  const fileProblems = missingMediaProblems(
+    parsed.data.clips.map((c, i) => ({ rank: i + 1, mediaId: c.source?.mediaId ?? '' })),
+  );
+  if (fileProblems.length > 0) return Response.json({ problems: fileProblems }, { status: 400 });
 
   await ensureDirs();
   const job = createJob();

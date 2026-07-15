@@ -41,6 +41,13 @@ export async function probeDurationSec(filePath: string): Promise<number> {
   return duration;
 }
 
+/** 렌더 시작 전 각 클립의 미디어 파일 존재 확인. 문제 목록(비면 통과) 반환 */
+export function missingMediaProblems(clips: { rank: number; mediaId: string }[]): string[] {
+  return clips
+    .filter((c) => !existsSync(mediaPath(c.mediaId)))
+    .map((c) => `${c.rank}번 클립: 미디어 파일이 없습니다. 다시 가져오거나 업로드해 주세요.`);
+}
+
 export async function saveUploadedFile(file: File): Promise<{ mediaId: string; durationSec: number }> {
   if (file.size > MAX_UPLOAD_BYTES) throw new MediaError('파일이 500MB를 초과합니다.');
   const isMp4 = file.type === 'video/mp4' || file.name.toLowerCase().endsWith('.mp4');
