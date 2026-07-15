@@ -1,0 +1,18 @@
+{
+  "title": {
+    "text": "Ranking The Funniest\nBaby Reactions",
+    "fontFamily": "archivo-black", "fontSizePx": 76,
+    "bold": false, "italic": false, "align": "center",
+    "color": "#FFFFFF", "strokeWidthPx": 4, "strokeColor": "#000000"
+  },
+  "general": { "videoHeightPct": 80, "backgroundColor": "#2B2A2A" },
+  "ranksTotal": 3,
+  "clips": [
+    { "id": "fx-2", "rank": 2, "src": { "kind": "static", "path": "fixtures/clip-b.mp4" }, "trimStartSec": 0, "trimEndSec": 4, "volume": 1,
+      "label": { "text": "Laugh", "fontSizePx": 52, "color": "#FFFFFF", "strokeWidthPx": 6, "strokeColor": "#000000" } },
+    { "id": "fx-3", "rank": 3, "src": { "kind": "static", "path": "fixtures/clip-c.mp4" }, "trimStartSec": 0, "trimEndSec": 5, "volume": 1,
+      "label": { "text": "Flower", "fontSizePx": 52, "color": "#FFFFFF", "strokeWidthPx": 6, "strokeColor": "#000000" } },
+    { "id": "fx-1", "rank": 1, "src": { "kind": "static", "path": "fixtures/clip-a.mp4" }, "trimStartSec": 1, "trimEndSec": 4, "volume": 1,
+      "label": { "text": "Medicine", "fontSizePx": 52, "color": "#FFFFFF", "strokeWidthPx": 6, "strokeColor": "#000000" } }
+  ]
+}
