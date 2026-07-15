@@ -7,6 +7,7 @@ import { GeneralSettings } from '@/components/GeneralSettings';
 import { ClipCard } from '@/components/ClipCard';
 import { OrderPanel } from '@/components/OrderPanel';
 import { PreviewPane } from '@/components/PreviewPane';
+import { GeneratePanel } from '@/components/GeneratePanel';
 
 export default function Home() {
   const clipIds = useEditorStore(useShallow((s) => s.project.clips.map((c) => c.id)));
@@ -29,8 +30,9 @@ export default function Home() {
           + Add More Video
         </button>
       </div>
-      <aside className="lg:sticky lg:top-6 lg:self-start">
+      <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
         <PreviewPane />
+        <GeneratePanel />
       </aside>
     </main>
   );
