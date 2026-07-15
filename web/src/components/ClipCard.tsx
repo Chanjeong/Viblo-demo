@@ -12,8 +12,14 @@ const IDLE_INGEST: IngestUiState = { state: 'idle' };
 export function ClipCard({ clipId, index, count }: { clipId: string; index: number; count: number }) {
   const clip = useEditorStore((s) => s.project.clips.find((c) => c.id === clipId));
   const ingest = useEditorStore((s) => s.ingest[clipId] ?? IDLE_INGEST);
-  const { removeClip, moveClip, attachMedia, setTrim, setVolume, setLabel, setIngestState, setClipUrl } =
-    useEditorStore();
+  const removeClip = useEditorStore((s) => s.removeClip);
+  const moveClip = useEditorStore((s) => s.moveClip);
+  const attachMedia = useEditorStore((s) => s.attachMedia);
+  const setTrim = useEditorStore((s) => s.setTrim);
+  const setVolume = useEditorStore((s) => s.setVolume);
+  const setLabel = useEditorStore((s) => s.setLabel);
+  const setIngestState = useEditorStore((s) => s.setIngestState);
+  const setClipUrl = useEditorStore((s) => s.setClipUrl);
   const [url, setUrl] = useState('');
 
   if (!clip) return null;
@@ -29,8 +35,10 @@ export function ClipCard({ clipId, index, count }: { clipId: string; index: numb
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? '가져오기 실패');
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data == null) {
+        throw new Error(data?.message ?? '요청 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      }
       attachMedia(clipId, { mediaId: data.mediaId, durationSec: data.durationSec, via: 'url' });
       setIngestState(clipId, { state: 'idle' });
     } catch (e) {
@@ -47,8 +55,10 @@ export function ClipCard({ clipId, index, count }: { clipId: string; index: numb
       const form = new FormData();
       form.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? '업로드 실패');
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data == null) {
+        throw new Error(data?.error ?? '요청 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      }
       attachMedia(clipId, { mediaId: data.mediaId, durationSec: data.durationSec, via: 'upload' });
       setIngestState(clipId, { state: 'idle' });
     } catch (e) {
