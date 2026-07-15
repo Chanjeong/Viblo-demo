@@ -179,6 +179,7 @@ export function buildRenderProject(
     const byId = new Map(project.clips.map((c) => [c.id, c]));
     const sameSet =
       project.customOrder.length === project.clips.length &&
+      new Set(project.customOrder).size === project.clips.length &&
       project.customOrder.every((id) => byId.has(id));
     if (!sameSet) {
       problems.push('재생 순서(customOrder)가 클립 목록과 일치하지 않습니다.');

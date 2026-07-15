@@ -77,4 +77,11 @@ describe('buildRenderProject', () => {
     p.clips = [];
     expect(buildRenderProject(p, resolveSrc).ok).toBe(false);
   });
+  it('rejects customOrder with duplicate ids', () => {
+    const p = defaultProject();
+    p.clips = [readyClip('A'), readyClip('B')];
+    p.customOrder = [p.clips[0].id, p.clips[0].id];
+    const r = buildRenderProject(p, resolveSrc);
+    expect(r.ok).toBe(false);
+  });
 });
