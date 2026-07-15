@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
+/* 라이트 전용 디자인(흰색 카드 기반) — OS 다크모드에서도 색을 뒤집지 않는다.
+   과거엔 prefers-color-scheme:dark 가 글자색을 흰색으로 바꿔 밝은 배경 위에서
+   뿌옇게 보이는 문제가 있었다. color-scheme:light 로 네이티브 컨트롤까지 고정. */
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -10,13 +14,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
