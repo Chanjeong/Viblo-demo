@@ -56,22 +56,32 @@ Viblo의 "Video Ranking" 기능을 참고하되, v1은 참고 영상
 
 ## 4. 아키텍처
 
-전 구간 TypeScript(연결 지점 최소화 → 버그·엣지케이스 감소).
+**단일 Next.js 앱(TypeScript).** 프론트 + API를 한 프로젝트/한 서버로 통합해
+연결 지점(seam)을 최소화한다 → 버그·엣지케이스 감소(최우선 목표에 부합).
 
 ```
-Frontend (React + TS, Vite)
-  - 에디터 UI: dnd 정렬, 트림 슬라이더, 컬러픽커
-  - Remotion <Player> 실시간 WYSIWYG 미리보기
-        │  project JSON
-Backend (Node)
-  - POST /ingest : URL → yt-dlp 다운로드 (실패 시 유형별 에러)
-  - POST /render : project JSON → Remotion 렌더 → mp4
-        │
-shared 패키지
-  - <RankingVideo/> (Remotion 컴포지션)
-  - 미리보기와 최종 렌더가 **동일한 React 코드**를 사용 →
-    "미리보기 ≠ 결과물" 문제 원천 차단
+Next.js 앱 (React + TS)
+  ├─ 프론트(Client)
+  │    - 에디터 UI: dnd 정렬, 트림 슬라이더, 컬러픽커
+  │    - Remotion <Player> 실시간 WYSIWYG 미리보기
+  │        │  project JSON
+  ├─ API Route Handlers (Node 런타임)
+  │    - POST /api/ingest : URL → yt-dlp 다운로드 (실패 시 유형별 에러)
+  │    - POST /api/render : project JSON → 백그라운드 잡 등록
+  │    - GET  /api/render/:jobId : 진행률/결과 폴링
+  │
+  └─ remotion/ (Remotion 컴포지션 폴더)
+       - <RankingVideo/>
+       - Player(미리보기)와 서버 렌더가 **동일한 React 코드**를 공유 →
+         "미리보기 ≠ 결과물" 문제 원천 차단
 ```
+
+**실행/배포 제약 (반드시 준수):**
+- 무거운 작업(yt-dlp, Remotion 렌더=헤드리스 Chrome+ffmpeg)은 오래 걸리고
+  로컬 파일시스템이 필요 → **Vercel 서버리스 배포 불가.** 반드시 일반 Node
+  서버(`next start`, Node 런타임 route handler)로 실행. 개인/로컬 도구 전제라 OK.
+- `/api/render`는 HTTP를 붙잡지 않고 **백그라운드 잡 + 폴링**으로 처리
+  (긴 작업이라 블로킹 응답 금지).
 
 - 저장소: 로컬 파일시스템(다운로드 클립 + 렌더 결과물). 개인/로컬 도구 전제.
 - 최종 산출물: 1080×1920 9:16 mp4 (유튜브 쇼츠/틱톡/릴스 규격),
