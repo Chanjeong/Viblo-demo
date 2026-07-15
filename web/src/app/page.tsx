@@ -1,12 +1,13 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { useEditorStore } from '@/store/editor';
 import { TitleEditor } from '@/components/TitleEditor';
 import { GeneralSettings } from '@/components/GeneralSettings';
 import { ClipCard } from '@/components/ClipCard';
 
 export default function Home() {
-  const clipIds = useEditorStore((s) => s.project.clips.map((c) => c.id));
+  const clipIds = useEditorStore(useShallow((s) => s.project.clips.map((c) => c.id)));
   const addClip = useEditorStore((s) => s.addClip);
 
   return (

@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import type { IngestUiState } from '@/store/editor';
 import { useEditorStore } from '@/store/editor';
 import { ColorPopover } from '@/components/ColorPopover';
 import { TrimSlider } from '@/components/TrimSlider';
 import { clampNum } from '@/lib/num';
 
+const IDLE_INGEST: IngestUiState = { state: 'idle' };
+
 export function ClipCard({ clipId, index, count }: { clipId: string; index: number; count: number }) {
   const clip = useEditorStore((s) => s.project.clips.find((c) => c.id === clipId));
-  const ingest = useEditorStore((s) => s.ingest[clipId] ?? { state: 'idle' as const });
+  const ingest = useEditorStore((s) => s.ingest[clipId] ?? IDLE_INGEST);
   const { removeClip, moveClip, attachMedia, setTrim, setVolume, setLabel, setIngestState, setClipUrl } =
     useEditorStore();
   const [url, setUrl] = useState('');
