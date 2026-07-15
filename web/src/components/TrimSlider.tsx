@@ -9,7 +9,8 @@ export function TrimSlider({
 }: {
   durationSec: number;
   value: { startSec: number; endSec: number };
-  onChange: (v: { startSec: number; endSec: number }) => void;
+  /** edge = 방금 움직인 핸들. 미리보기 영상을 해당 지점으로 이동시키는 데 쓴다. */
+  onChange: (v: { startSec: number; endSec: number }, edge: 'start' | 'end') => void;
 }) {
   const pct = (s: number) => (s / durationSec) * 100;
   return (
@@ -27,14 +28,14 @@ export function TrimSlider({
           type="range" min={0} max={durationSec} step={0.1} value={value.startSec}
           onChange={(e) => {
             const startSec = Math.min(Number(e.target.value), value.endSec - MIN_TRIM_SEC);
-            onChange({ startSec: Math.max(0, startSec), endSec: value.endSec });
+            onChange({ startSec: Math.max(0, startSec), endSec: value.endSec }, 'start');
           }}
         />
         <input
           type="range" min={0} max={durationSec} step={0.1} value={value.endSec}
           onChange={(e) => {
             const endSec = Math.max(Number(e.target.value), value.startSec + MIN_TRIM_SEC);
-            onChange({ startSec: value.startSec, endSec: Math.min(durationSec, endSec) });
+            onChange({ startSec: value.startSec, endSec: Math.min(durationSec, endSec) }, 'end');
           }}
         />
       </div>

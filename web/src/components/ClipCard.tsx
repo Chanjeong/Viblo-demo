@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { IngestUiState } from '@/store/editor';
 import { useEditorStore } from '@/store/editor';
 import { ColorPopover } from '@/components/ColorPopover';
@@ -21,9 +21,21 @@ export function ClipCard({ clipId, index, count }: { clipId: string; index: numb
   const setIngestState = useEditorStore((s) => s.setIngestState);
   const setClipUrl = useEditorStore((s) => s.setClipUrl);
   const [url, setUrl] = useState('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   if (!clip) return null;
-  const ready = clip.source?.mediaId != null && clip.trim != null;
+  const mediaId = clip.source?.mediaId ?? null;
+  const ready = mediaId != null && clip.trim != null;
+
+  /** 트림 핸들을 움직이면 그 지점 프레임을 미리보기 영상에 보여준다. */
+  function seekPreview(v: { startSec: number; endSec: number }, edge: 'start' | 'end') {
+    setTrim(clipId, v);
+    const el = videoRef.current;
+    if (el) {
+      el.pause();
+      el.currentTime = edge === 'end' ? v.endSec : v.startSec;
+    }
+  }
 
   async function ingestUrl() {
     if (!url.trim()) return;
@@ -110,7 +122,18 @@ export function ClipCard({ clipId, index, count }: { clipId: string; index: numb
 
       {ready && clip.durationSec != null && clip.trim != null && (
         <div className="flex flex-col gap-3">
-          <TrimSlider durationSec={clip.durationSec} value={clip.trim} onChange={(t) => setTrim(clipId, t)} />
+          <div className="flex justify-center rounded-lg bg-black">
+            <video
+              ref={videoRef}
+              key={mediaId ?? undefined}
+              src={mediaId ? `/api/media/${mediaId}` : undefined}
+              controls
+              playsInline
+              preload="metadata"
+              className="max-h-72 rounded-lg"
+            />
+          </div>
+          <TrimSlider durationSec={clip.durationSec} value={clip.trim} onChange={seekPreview} />
           <label className="flex items-center gap-2 text-sm">
             🔊 Volume
             <input type="range" min={0} max={1} step={0.05} value={clip.volume}
