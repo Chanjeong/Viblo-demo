@@ -2,6 +2,7 @@
 
 import { useEditorStore } from '@/store/editor';
 import { ColorPopover } from '@/components/ColorPopover';
+import { clampNum } from '@/lib/num';
 import type { Align, FontFamilyId } from '@/lib/project';
 
 export function TitleEditor() {
@@ -24,7 +25,7 @@ export function TitleEditor() {
           type="number" min={20} max={200}
           className="w-20 rounded border px-2 py-1"
           value={title.fontSizePx}
-          onChange={(e) => setTitle({ fontSizePx: Number(e.target.value) })}
+          onChange={(e) => setTitle({ fontSizePx: clampNum(e.target.value, 20, 200, title.fontSizePx) })}
         />
         <button type="button" onClick={() => setTitle({ bold: !title.bold })}
           className={`rounded border px-3 py-1 font-bold ${title.bold ? 'bg-black text-white' : ''}`}>B</button>

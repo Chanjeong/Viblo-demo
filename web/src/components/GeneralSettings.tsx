@@ -2,6 +2,7 @@
 
 import { useEditorStore } from '@/store/editor';
 import { ColorPopover } from '@/components/ColorPopover';
+import { clampNum } from '@/lib/num';
 
 export function GeneralSettings() {
   const general = useEditorStore((s) => s.project.general);
@@ -17,7 +18,7 @@ export function GeneralSettings() {
             type="number" min={50} max={100}
             className="w-20 rounded border px-2 py-1"
             value={general.videoHeightPct}
-            onChange={(e) => setGeneral({ videoHeightPct: Number(e.target.value) })}
+            onChange={(e) => setGeneral({ videoHeightPct: clampNum(e.target.value, 50, 100, general.videoHeightPct) })}
           />
           %
         </label>
