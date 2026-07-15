@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyYtDlpError, isAllowedVideoUrl, INGEST_MESSAGES_KO } from '@/lib/ytdlp';
+import { classifyYtDlpError, isAllowedVideoUrl, INGEST_MESSAGES_KO, pickDownloadedFile } from '@/lib/ytdlp';
 
 describe('classifyYtDlpError', () => {
   const cases: [string, string][] = [
@@ -40,5 +40,19 @@ describe('isAllowedVideoUrl', () => {
     expect(isAllowedVideoUrl('https://evil.com/watch')).toBe(false);
     expect(isAllowedVideoUrl('https://nottiktok.com/x')).toBe(false);
     expect(isAllowedVideoUrl('notaurl')).toBe(false);
+  });
+});
+
+describe('pickDownloadedFile', () => {
+  const id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  it('prefers the exact <id>.mp4 over partial artifacts regardless of order', () => {
+    expect(pickDownloadedFile([`${id}.mp4.part`, `${id}.f137.mp4`, `${id}.mp4`], id)).toBe(`${id}.mp4`);
+  });
+  it('ignores .part/.ytdl/fragment files when no exact mp4 exists', () => {
+    expect(pickDownloadedFile([`${id}.mp4.part`, `${id}.ytdl`], id)).toBeNull();
+    expect(pickDownloadedFile([`${id}.webm`, `${id}.mp4.part`], id)).toBe(`${id}.webm`);
+  });
+  it('ignores files of other media ids', () => {
+    expect(pickDownloadedFile(['other.mp4'], id)).toBeNull();
   });
 });

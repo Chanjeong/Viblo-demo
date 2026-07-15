@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { readdir, rename, unlink } from 'node:fs/promises';
+import { readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { MEDIA_DIR, ensureDirs, mediaPath, probeDurationSec } from '@/lib/media';
 
@@ -52,10 +52,20 @@ const YTDLP = () => process.env.YT_DLP_PATH || 'yt-dlp';
 const DOWNLOAD_TIMEOUT_MS = 180_000;
 const RETRYABLE: IngestErrorType[] = ['network', 'timeout', 'rate_limited'];
 
+/** 완료된 산출물 우선 선택: 정확한 <id>.mp4 > 부분파일 아닌 <id>.* > null */
+export function pickDownloadedFile(files: string[], mediaId: string): string | null {
+  const mine = files.filter((f) => f.startsWith(mediaId));
+  const isPartial = (f: string) => /\.(part|ytdl|temp)$/i.test(f) || /\.f\d+\./.test(f);
+  const exact = mine.find((f) => f === `${mediaId}.mp4`);
+  if (exact) return exact;
+  const complete = mine.filter((f) => !isPartial(f));
+  return complete[0] ?? null;
+}
+
 async function findDownloaded(mediaId: string): Promise<string> {
-  const files = (await readdir(MEDIA_DIR)).filter((f) => f.startsWith(mediaId));
-  if (files.length === 0) throw new IngestError('unknown', '다운로드된 파일을 찾을 수 없습니다.');
-  return path.join(MEDIA_DIR, files[0]);
+  const picked = pickDownloadedFile(await readdir(MEDIA_DIR), mediaId);
+  if (!picked) throw new IngestError('unknown', '다운로드된 파일을 찾을 수 없습니다.');
+  return path.join(MEDIA_DIR, picked);
 }
 
 async function remuxToMp4(src: string, dest: string): Promise<void> {
