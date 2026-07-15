@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { saveUploadedFile } from '@/lib/media';
+import { saveUploadedFile, MediaError } from '@/lib/media';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,10 @@ export async function POST(req: NextRequest) {
     const result = await saveUploadedFile(file);
     return Response.json(result);
   } catch (e) {
-    return Response.json({ error: e instanceof Error ? e.message : '업로드 실패' }, { status: 400 });
+    if (e instanceof MediaError) {
+      return Response.json({ error: e.message }, { status: 400 });
+    }
+    console.error(e);
+    return Response.json({ error: '업로드 처리 중 오류가 발생했습니다.' }, { status: 500 });
   }
 }

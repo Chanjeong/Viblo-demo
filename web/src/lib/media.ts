@@ -1,8 +1,11 @@
 import { execa } from 'execa';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { MAX_UPLOAD_BYTES } from '@/lib/project';
+
+/** Client-safe error: message may be shown to the caller as-is. */
+export class MediaError extends Error {}
 
 export const MEDIA_DIR = path.join(process.cwd(), 'storage', 'media');
 export const RENDERS_DIR = path.join(process.cwd(), 'storage', 'renders');
@@ -32,20 +35,28 @@ export async function probeDurationSec(filePath: string): Promise<number> {
   );
   const duration = Number(JSON.parse(stdout)?.format?.duration);
   if (!Number.isFinite(duration) || duration <= 0) {
-    throw new Error(`영상 길이를 읽을 수 없습니다: ${filePath}`);
+    console.error(`영상 길이를 읽을 수 없습니다: ${filePath}`);
+    throw new Error('영상 길이를 읽을 수 없습니다.');
   }
   return duration;
 }
 
 export async function saveUploadedFile(file: File): Promise<{ mediaId: string; durationSec: number }> {
-  if (file.size > MAX_UPLOAD_BYTES) throw new Error('파일이 500MB를 초과합니다.');
+  if (file.size > MAX_UPLOAD_BYTES) throw new MediaError('파일이 500MB를 초과합니다.');
   const isMp4 = file.type === 'video/mp4' || file.name.toLowerCase().endsWith('.mp4');
-  if (!isMp4) throw new Error('MP4 파일만 업로드할 수 있습니다.');
+  if (!isMp4) throw new MediaError('MP4 파일만 업로드할 수 있습니다.');
 
   await ensureDirs();
   const mediaId = crypto.randomUUID();
   const dest = mediaPath(mediaId);
   await writeFile(dest, Buffer.from(await file.arrayBuffer()));
-  const durationSec = await probeDurationSec(dest); // 손상 파일이면 여기서 throw
+  let durationSec: number;
+  try {
+    durationSec = await probeDurationSec(dest); // 손상 파일이면 여기서 throw
+  } catch (e) {
+    await unlink(dest).catch(() => {});
+    console.error(e);
+    throw new MediaError('올바른 MP4 영상이 아니거나 손상된 파일입니다.');
+  }
   return { mediaId, durationSec };
 }
