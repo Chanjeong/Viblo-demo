@@ -131,6 +131,21 @@ export function ClipCard({ clipId, index, count }: { clipId: string; index: numb
               playsInline
               preload="metadata"
               className="max-h-72 rounded-lg"
+              // 재생은 트림 구간 안에서만: 구간 밖에서 재생을 누르면 시작점부터,
+              // 끝 지점에 도달하면 자동으로 멈춘다. (스크럽으로 전체 구간 훑어보는 건 자유)
+              onPlay={(e) => {
+                const el = e.currentTarget;
+                const { startSec, endSec } = clip.trim!;
+                if (el.currentTime < startSec || el.currentTime >= endSec - 0.05) {
+                  el.currentTime = startSec;
+                }
+              }}
+              onTimeUpdate={(e) => {
+                const el = e.currentTarget;
+                if (!el.paused && el.currentTime >= clip.trim!.endSec) {
+                  el.pause();
+                }
+              }}
             />
           </div>
           <TrimSlider durationSec={clip.durationSec} value={clip.trim} onChange={seekPreview} />
